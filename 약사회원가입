@@ -1,0 +1,465 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>엑소프록실 · 약사 전용</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant:wght@500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css" />
+<!-- 카카오(다음) 우편번호 서비스: 무료, 키 불필요 -->
+<script src="//t1.daumcdn.net/mapjsapi/bundle/postcode/prod/postcode.v2.js"></script>
+
+<style>
+  :root{
+    --green-900:#0e3a2c; --green-700:#14463a; --green-500:#2c7a5f; --green-300:#7fb39d;
+    --cream:#f5f1e8; --paper:#fffdf8; --ink:#1c2622; --ink-soft:#5c6660;
+    --line:#e2dccb; --danger:#b4452f; --leftbg:#ecebe6;
+    --font:'Pretendard Variable',Pretendard,-apple-system,sans-serif; --serif:'Cormorant',serif;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  html,body{height:100%;}
+  body{font-family:var(--font);color:var(--ink);background:var(--paper);-webkit-font-smoothing:antialiased;line-height:1.5;}
+
+  .wrap{display:flex;min-height:100vh;}
+
+  /* ───────── 왼쪽: 프로모션 패널 (이미지/문구 자유 교체) ───────── */
+  .left{flex:1 1 46%;background:var(--leftbg);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:48px 32px;gap:26px;}
+  .promo{
+    width:340px;max-width:100%;border-radius:22px;overflow:hidden;position:relative;
+    background:linear-gradient(150deg,var(--green-700),var(--green-500) 70%,#3f9a78);
+    box-shadow:0 30px 60px -28px rgba(14,58,44,.6);aspect-ratio:3/4;
+    display:flex;flex-direction:column;justify-content:space-between;padding:30px 28px;color:#fff;
+  }
+  .promo::after{content:"";position:absolute;inset:0;background:radial-gradient(120% 60% at 90% 0%,rgba(255,255,255,.18),transparent 60%);}
+  .promo .eyebrow{position:relative;z-index:1;display:flex;gap:14px;font-size:13px;font-weight:600;opacity:.9;letter-spacing:.02em;}
+  .promo .headline{position:relative;z-index:1;font-weight:800;font-size:40px;line-height:1.08;letter-spacing:-.02em;}
+  .promo .headline span{display:block;}
+  .promo .headline em{font-style:normal;color:#cfeede;}
+  .promo .brandrow{position:relative;z-index:1;display:flex;align-items:center;gap:8px;font-weight:700;font-size:17px;}
+  .promo .brandrow svg{width:20px;height:20px;}
+  .qrline{display:flex;align-items:center;gap:16px;}
+  .qrtext{font-weight:700;font-size:15px;color:var(--ink);line-height:1.4;}
+  .qrbox{width:88px;height:88px;border-radius:10px;background:#fff;border:1px solid var(--line);display:grid;place-items:center;font-size:11px;color:var(--ink-soft);text-align:center;}
+
+  /* ───────── 오른쪽: 인증 패널 ───────── */
+  .right{flex:1 1 54%;background:var(--paper);position:relative;display:flex;flex-direction:column;align-items:center;overflow-y:auto;}
+  .topbar{width:100%;max-width:520px;padding:22px 26px 0;}
+  .back{width:38px;height:38px;border:none;background:none;cursor:pointer;border-radius:50%;display:grid;place-items:center;color:var(--ink);transition:background .15s;}
+  .back:hover{background:#f0ece2;}
+  .back svg{width:22px;height:22px;}
+  .back[hidden]{visibility:hidden;}
+
+  .panel{width:100%;max-width:520px;padding:10px 26px 60px;flex:1;}
+
+  /* 환영(welcome) 상태 */
+  .welcome{display:flex;flex-direction:column;align-items:center;text-align:center;justify-content:center;min-height:60vh;animation:fade .5s ease both;}
+  .wm{font-family:var(--serif);font-weight:600;font-size:36px;letter-spacing:.14em;color:var(--green-900);}
+  .wm-ko{font-size:13px;letter-spacing:.42em;color:var(--ink-soft);font-weight:600;margin-top:4px;padding-left:.42em;}
+  .badge{margin-top:18px;font-size:11px;font-weight:700;letter-spacing:.12em;color:var(--green-700);background:rgba(44,122,95,.1);border:1px solid rgba(44,122,95,.25);padding:6px 14px;border-radius:100px;}
+  .welcome h2{margin-top:22px;font-size:21px;font-weight:800;color:var(--ink);line-height:1.45;}
+  .welcome h2 b{color:var(--green-700);}
+  .cta{margin-top:34px;width:100%;background:var(--green-700);color:#fff;border:none;border-radius:12px;padding:17px;font-family:var(--font);font-size:16px;font-weight:700;cursor:pointer;box-shadow:0 16px 34px -16px rgba(14,58,44,.85);transition:background .18s,transform .12s;}
+  .cta:hover{background:var(--green-900);}
+  .cta:active{transform:translateY(1px);}
+  .welcome .login{margin-top:18px;font-size:13.5px;color:var(--ink-soft);}
+  .welcome .login a{color:var(--green-700);font-weight:600;text-decoration:none;}
+
+  /* 폼(form) 상태 */
+  .form-wrap{display:none;animation:fade .5s ease both;}
+  .form-wrap.on{display:block;}
+  .welcome.off{display:none;}
+  .formhead{text-align:center;margin-bottom:24px;}
+  .formhead .wm{font-size:26px;}
+  .formhead .title{margin-top:8px;font-size:14px;color:var(--ink-soft);}
+  .formhead .title b{color:var(--ink);}
+  .divider{height:1px;background:linear-gradient(90deg,transparent,var(--line),transparent);margin:18px 0 22px;}
+
+  @keyframes fade{from{opacity:0;transform:translateY(8px);}to{opacity:1;transform:none;}}
+
+  .group-label{font-size:12px;font-weight:800;letter-spacing:.08em;color:var(--green-700);text-transform:uppercase;margin:26px 0 10px;}
+  .field{margin-bottom:16px;}
+  label.lab{display:block;font-size:13px;font-weight:700;margin-bottom:7px;}
+  label.lab .req{color:var(--danger);margin-left:2px;}
+  label.lab .opt{color:var(--ink-soft);font-weight:600;font-size:12px;margin-left:4px;}
+  .hint{font-size:12px;color:var(--ink-soft);margin-top:6px;}
+
+  .control{width:100%;font-family:var(--font);font-size:14.5px;color:var(--ink);background:#fbf9f3;border:1px solid var(--line);border-radius:10px;padding:12px 14px;transition:border-color .18s,box-shadow .18s,background .18s;}
+  .control::placeholder{color:#a7a99e;}
+  .control:focus{outline:none;border-color:var(--green-500);background:#fff;box-shadow:0 0 0 3px rgba(44,122,95,.14);}
+  .control[readonly]{background:#f1eee5;color:var(--ink-soft);cursor:default;}
+  .control.bad{border-color:var(--danger);box-shadow:0 0 0 3px rgba(180,69,47,.12);}
+  select.control{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' fill='none' stroke='%235c6660' stroke-width='1.6'%3E%3Cpath d='M1 1l5 5 5-5'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 14px center;padding-right:34px;}
+
+  .row{display:flex;gap:9px;}
+  .row .control{flex:1;}
+  .btn-side{flex:0 0 auto;white-space:nowrap;font-size:13px;font-weight:700;padding:0 16px;border-radius:10px;cursor:pointer;background:#fff;color:var(--green-700);border:1px solid var(--green-300);transition:.18s;}
+  .btn-side:hover{background:var(--green-700);color:#fff;border-color:var(--green-700);}
+
+  .msg{font-size:12px;margin-top:6px;display:none;}
+  .msg.ok{color:var(--green-500);display:block;}
+  .msg.err{color:var(--danger);display:block;}
+
+  .seg{display:flex;gap:9px;}
+  .seg label{flex:1;text-align:center;border:1px solid var(--line);border-radius:10px;padding:11px;font-size:14px;font-weight:600;cursor:pointer;background:#fbf9f3;transition:.15s;color:var(--ink-soft);}
+  .seg input{display:none;}
+  .seg input:checked + label{background:var(--green-700);border-color:var(--green-700);color:#fff;}
+
+  .drop{border:1.5px dashed var(--green-300);border-radius:12px;background:#fbf9f3;padding:20px 16px;text-align:center;cursor:pointer;transition:.18s;color:var(--ink-soft);font-size:14px;}
+  .drop:hover,.drop.drag{background:rgba(44,122,95,.07);border-color:var(--green-500);color:var(--green-700);}
+  .drop strong{color:var(--green-700);}
+  .drop .ic{font-size:22px;display:block;margin-bottom:6px;}
+  .file-pill{display:none;align-items:center;justify-content:space-between;gap:10px;margin-top:10px;background:rgba(44,122,95,.08);border:1px solid rgba(44,122,95,.22);border-radius:10px;padding:10px 13px;font-size:13px;}
+  .file-pill .name{color:var(--green-900);font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .file-pill .x{cursor:pointer;color:var(--ink-soft);font-weight:700;border:none;background:none;font-size:15px;}
+  .file-pill .x:hover{color:var(--danger);}
+
+  .agree{margin-top:26px;border:1px solid var(--line);border-radius:12px;overflow:hidden;}
+  .agree .all{display:flex;align-items:center;gap:10px;padding:14px 16px;background:#faf7f0;border-bottom:1px solid var(--line);font-weight:700;font-size:14px;cursor:pointer;}
+  .agree .item{display:flex;align-items:center;gap:10px;padding:11px 16px;font-size:13.5px;cursor:pointer;}
+  .agree .item + .item{border-top:1px solid #f0ebde;}
+  .tag{font-weight:700;}.tag.must{color:var(--danger);}.tag.opt{color:var(--ink-soft);}
+  .agree .view{margin-left:auto;font-size:12px;color:var(--ink-soft);text-decoration:underline;cursor:pointer;}
+  input[type=checkbox]{appearance:none;-webkit-appearance:none;width:20px;height:20px;flex:0 0 auto;border:1.5px solid var(--green-300);border-radius:6px;background:#fff;cursor:pointer;position:relative;transition:.15s;}
+  input[type=checkbox]:checked{background:var(--green-700);border-color:var(--green-700);}
+  input[type=checkbox]:checked::after{content:"";position:absolute;left:6px;top:2.5px;width:5px;height:10px;border:solid #fff;border-width:0 2px 2px 0;transform:rotate(42deg);}
+
+  .submit{width:100%;margin-top:26px;font-family:var(--font);font-size:15px;font-weight:700;color:#fff;background:var(--green-700);border:none;border-radius:11px;padding:15px;cursor:pointer;box-shadow:0 14px 30px -14px rgba(14,58,44,.8);transition:transform .12s,background .18s;}
+  .submit:hover{background:var(--green-900);}.submit:active{transform:translateY(1px);}
+
+  .footnote{text-align:center;margin-top:18px;font-size:12px;color:#9a9d94;line-height:1.6;}
+  .footnote a{color:var(--ink-soft);}
+
+  /* 완료 */
+  .done{position:fixed;inset:0;z-index:30;display:none;place-items:center;background:rgba(14,58,44,.4);backdrop-filter:blur(4px);}
+  .done.show{display:grid;animation:fade .3s ease both;}
+  .done .box{background:var(--paper);border-radius:16px;padding:34px 32px;max-width:380px;text-align:center;box-shadow:0 30px 70px -20px rgba(0,0,0,.5);}
+  .done .ring{width:60px;height:60px;margin:0 auto 16px;border-radius:50%;background:var(--green-700);display:grid;place-items:center;}
+  .done .ring svg{width:28px;height:28px;}
+  .done h3{font-size:20px;margin-bottom:8px;color:var(--green-900);}
+  .done p{font-size:14px;color:var(--ink-soft);line-height:1.6;}
+  .done button{margin-top:20px;background:var(--green-700);color:#fff;border:none;border-radius:10px;padding:11px 26px;font-weight:700;cursor:pointer;font-family:var(--font);font-size:14px;}
+
+  /* 반응형: 모바일에서는 세로로 쌓기 */
+  @media(max-width:900px){
+    .wrap{flex-direction:column;}
+    .left{flex:none;padding:34px 24px;}
+    .promo{width:240px;aspect-ratio:4/3;padding:22px 20px;}
+    .promo .headline{font-size:28px;}
+    .qrline{display:none;}
+  }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <!-- ════════ 왼쪽 프로모션 영역 (이미지/문구 자유 교체) ════════ -->
+  <aside class="left">
+    <!-- 이 .promo 블록을 통째로 <img>나 원하는 배너로 바꿔도 됩니다 -->
+    <div class="promo">
+      <div class="eyebrow"><span>어디서</span><span>무엇을</span><span>어떻게</span></div>
+      <div class="headline">
+        <span>약사를 위한</span>
+        <span><em>전문 채널</em></span>
+      </div>
+      <div class="brandrow">
+        <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+        엑소프록실
+      </div>
+    </div>
+    <div class="qrline">
+      <div class="qrtext">QR 찍고<br>더 자세히 보기</div>
+      <div class="qrbox">QR<br>이미지<br>삽입</div>
+    </div>
+  </aside>
+
+  <!-- ════════ 오른쪽 인증 영역 ════════ -->
+  <section class="right">
+    <div class="topbar">
+      <button class="back" id="backBtn" hidden aria-label="뒤로">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
+      </button>
+    </div>
+
+    <div class="panel">
+
+      <!-- 1) 환영 화면: 버튼 하나 -->
+      <div class="welcome" id="welcome">
+        <div class="wm">EXOPROXIL</div>
+        <div class="wm-ko">엑 소 프 록 실</div>
+        <span class="badge">PHARMACIST ONLY</span>
+        <h2>약사 전용 <b>엑소프록실</b>에<br>오신 것을 환영합니다</h2>
+        <button class="cta" id="goJoin">약사 전용 회원가입</button>
+        <p class="login">이미 회원이신가요? <a href="#none">로그인</a></p>
+      </div>
+
+      <!-- 2) 회원가입 폼 -->
+      <div class="form-wrap" id="formWrap">
+        <div class="formhead">
+          <div class="wm">EXOPROXIL</div>
+          <p class="title"><b>약사 회원가입</b> · 면허 확인 후 승인됩니다</p>
+        </div>
+        <div class="divider"></div>
+
+        <form id="joinForm" novalidate>
+
+          <div class="group-label">기본정보</div>
+
+          <div class="field">
+            <label class="lab" for="userId">아이디 <span class="req">*</span></label>
+            <div class="row">
+              <input class="control" type="text" id="userId" autocomplete="username" placeholder="영문 소문자, 숫자 4~16자" />
+              <button type="button" class="btn-side" id="checkIdBtn">중복확인</button>
+            </div>
+            <p class="msg" id="idMsg"></p>
+          </div>
+
+          <div class="field">
+            <label class="lab" for="pw">비밀번호 <span class="req">*</span></label>
+            <input class="control" type="password" id="pw" autocomplete="new-password" placeholder="영문·숫자·특수문자 조합 10자 이상" />
+            <p class="msg" id="pwMsg"></p>
+          </div>
+
+          <div class="field">
+            <label class="lab" for="pw2">비밀번호 확인 <span class="req">*</span></label>
+            <input class="control" type="password" id="pw2" autocomplete="new-password" placeholder="비밀번호를 다시 입력해 주세요" />
+            <p class="msg" id="pw2Msg"></p>
+          </div>
+
+          <div class="field">
+            <label class="lab" for="name">이름 <span class="req">*</span></label>
+            <input class="control" type="text" id="name" autocomplete="name" placeholder="실명을 입력해 주세요" />
+            <p class="msg" id="nameMsg"></p>
+          </div>
+
+          <!-- 주소: 우편번호 검색 + 기본주소 + 나머지 주소 -->
+          <div class="field">
+            <label class="lab">주소 <span class="req">*</span></label>
+            <div class="row" style="margin-bottom:9px;">
+              <input class="control" type="text" id="zipcode" readonly placeholder="우편번호" style="max-width:140px;flex:0 0 140px;" />
+              <button type="button" class="btn-side" id="zipBtn">우편번호 검색</button>
+            </div>
+            <input class="control" type="text" id="addr1" readonly placeholder="기본주소 (검색 시 자동 입력)" style="margin-bottom:9px;" />
+            <input class="control" type="text" id="addr2" placeholder="나머지 주소 (상세주소를 입력해 주세요)" />
+            <p class="msg" id="addrMsg"></p>
+          </div>
+
+          <div class="field">
+            <label class="lab" for="phone">일반전화 <span class="opt">(선택)</span></label>
+            <input class="control" type="tel" id="phone" placeholder="'-' 없이 숫자만 입력" />
+          </div>
+
+          <div class="field">
+            <label class="lab" for="mobile">휴대전화 <span class="req">*</span></label>
+            <input class="control" type="tel" id="mobile" autocomplete="tel" placeholder="'-' 없이 숫자만 입력" />
+            <p class="msg" id="mobileMsg"></p>
+          </div>
+
+          <div class="field">
+            <label class="lab" for="email">이메일 <span class="req">*</span></label>
+            <input class="control" type="email" id="email" autocomplete="email" placeholder="example@exoproxil.com" />
+            <p class="msg" id="emailMsg"></p>
+          </div>
+
+          <div class="group-label">추가정보</div>
+
+          <div class="field">
+            <label class="lab">성별 <span class="opt">(선택)</span></label>
+            <div class="seg">
+              <input type="radio" name="sex" id="sexM" value="M"><label for="sexM">남성</label>
+              <input type="radio" name="sex" id="sexF" value="F"><label for="sexF">여성</label>
+            </div>
+          </div>
+
+          <div class="field">
+            <label class="lab">생년월일 <span class="opt">(선택)</span></label>
+            <div class="row">
+              <select class="control" id="birthY"><option value="">년</option></select>
+              <select class="control" id="birthM"><option value="">월</option></select>
+              <select class="control" id="birthD"><option value="">일</option></select>
+            </div>
+          </div>
+
+          <div class="field">
+            <label class="lab" for="license">약사 면허번호 <span class="req">*</span></label>
+            <input class="control" type="text" id="license" placeholder="예: 제 12345 호" />
+            <p class="hint">보건복지부 발급 약사 면허(등록)번호를 입력해 주세요.</p>
+            <p class="msg" id="licenseMsg"></p>
+          </div>
+
+          <div class="field">
+            <label class="lab">약국 사업자등록증 첨부 <span class="req">*</span></label>
+            <div class="drop" id="drop">
+              <span class="ic" aria-hidden="true">⬆</span>
+              <strong>파일 선택</strong> 또는 끌어다 놓기 · JPG·PNG·PDF, 10MB 이하
+            </div>
+            <input type="file" id="fileInput" accept=".jpg,.jpeg,.png,.pdf" hidden />
+            <div class="file-pill" id="filePill">
+              <span class="name" id="fileName"></span>
+              <button type="button" class="x" id="fileRemove" aria-label="삭제">✕</button>
+            </div>
+            <p class="msg" id="fileMsg"></p>
+          </div>
+
+          <div class="field">
+            <label class="lab">환불계좌 정보 <span class="opt">(선택)</span></label>
+            <input class="control" type="text" id="bankOwner" placeholder="예금주" style="margin-bottom:9px;" />
+            <select class="control" id="bankName" style="margin-bottom:9px;">
+              <option value="">은행 선택</option>
+              <option>국민은행</option><option>신한은행</option><option>우리은행</option>
+              <option>하나은행</option><option>NH농협은행</option><option>IBK기업은행</option>
+              <option>SC제일은행</option><option>카카오뱅크</option><option>토스뱅크</option>
+              <option>새마을금고</option><option>우체국</option><option>부산은행</option><option>대구은행</option>
+            </select>
+            <input class="control" type="text" id="bankNo" placeholder="계좌번호 ('-'와 숫자만 입력)" />
+          </div>
+
+          <!-- 약관 -->
+          <div class="agree">
+            <label class="all"><input type="checkbox" id="agreeAll" /><span>전체 동의</span></label>
+            <label class="item"><input type="checkbox" class="ag" data-must="1" /><span class="tag must">[필수]</span><span>이용약관 동의</span><span class="view" data-doc="이용약관">보기</span></label>
+            <label class="item"><input type="checkbox" class="ag" data-must="1" /><span class="tag must">[필수]</span><span>개인정보 수집·이용 동의</span><span class="view" data-doc="개인정보 처리방침">보기</span></label>
+            <label class="item"><input type="checkbox" class="ag" data-must="1" /><span class="tag must">[필수]</span><span>약사 면허·자격 확인 동의</span><span class="view" data-doc="면허 확인 안내">보기</span></label>
+            <label class="item"><input type="checkbox" class="ag" /><span class="tag opt">[선택]</span><span>쇼핑정보 수신 동의 (SMS·이메일)</span></label>
+          </div>
+          <p class="msg" id="agreeMsg"></p>
+
+          <button type="submit" class="submit">약사 회원가입 신청</button>
+
+          <p class="footnote">이 사이트는 reCAPTCHA로 보호되며, Google <a href="#none">개인정보처리방침</a>과 <a href="#none">서비스 약관</a>이 적용됩니다.</p>
+        </form>
+      </div>
+
+    </div>
+  </section>
+</div>
+
+<!-- 완료 -->
+<div class="done" id="done">
+  <div class="box">
+    <div class="ring"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 13l4 4L19 7"/></svg></div>
+    <h3>가입 신청이 완료되었습니다</h3>
+    <p>제출하신 면허번호와 사업자등록증 확인 후<br>승인 결과를 이메일로 안내드립니다.</p>
+    <button type="button" id="doneBtn">확인</button>
+  </div>
+</div>
+
+<script>
+(function(){
+  var $ = function(id){ return document.getElementById(id); };
+  var idChecked = false;
+  function setMsg(el,t,c){ el.textContent=t; el.className="msg "+(c||""); }
+  function mark(i,b){ i.classList.toggle("bad",!!b); }
+
+  /* 화면 전환: 환영 ↔ 폼 */
+  function showForm(){ $("welcome").classList.add("off"); $("formWrap").classList.add("on"); $("backBtn").hidden=false; document.querySelector(".right").scrollTop=0; window.scrollTo(0,0); }
+  function showWelcome(){ $("welcome").classList.remove("off"); $("formWrap").classList.remove("on"); $("backBtn").hidden=true; }
+  $("goJoin").addEventListener("click", showForm);
+  $("backBtn").addEventListener("click", showWelcome);
+
+  /* 생년월일 옵션 채우기 */
+  (function(){
+    var y=$("birthY"), m=$("birthM"), d=$("birthD"), now=new Date().getFullYear();
+    for(var i=now;i>=1940;i--){ y.add(new Option(i,i)); }
+    for(var j=1;j<=12;j++){ m.add(new Option(j,j)); }
+    for(var k=1;k<=31;k++){ d.add(new Option(k,k)); }
+  })();
+
+  /* 우편번호 검색 (카카오/다음) */
+  function openPostcode(){
+    new daum.Postcode({
+      oncomplete:function(data){
+        var addr = (data.userSelectedType==="R") ? data.roadAddress : data.jibunAddress;
+        $("zipcode").value = data.zonecode;
+        $("addr1").value = addr;
+        setMsg($("addrMsg"),"",""); mark($("addr1"),false);
+        $("addr2").focus();
+      }
+    }).open();
+  }
+  $("zipBtn").addEventListener("click", openPostcode);
+
+  /* 아이디 중복확인 (데모 — 실제로는 서버 호출) */
+  $("checkIdBtn").addEventListener("click", function(){
+    var v=$("userId").value.trim();
+    if(!/^[a-z0-9]{4,16}$/.test(v)){ mark($("userId"),true); setMsg($("idMsg"),"영문 소문자·숫자 4~16자로 입력해 주세요.","err"); idChecked=false; return; }
+    mark($("userId"),false);
+    if(["admin","test","exoproxil"].indexOf(v)>-1){ setMsg($("idMsg"),"이미 사용 중인 아이디입니다.","err"); idChecked=false; }
+    else { setMsg($("idMsg"),"사용 가능한 아이디입니다.","ok"); idChecked=true; }
+  });
+  $("userId").addEventListener("input", function(){ idChecked=false; setMsg($("idMsg"),"",""); });
+
+  /* 비밀번호 */
+  function pwValid(v){ if(v.length<10) return false; var k=0; if(/[a-zA-Z]/.test(v))k++; if(/[0-9]/.test(v))k++; if(/[^a-zA-Z0-9]/.test(v))k++; return k>=3; }
+  $("pw").addEventListener("input", function(){
+    var v=this.value; if(!v){ setMsg($("pwMsg"),"",""); mark(this,false); return; }
+    if(pwValid(v)){ setMsg($("pwMsg"),"안전한 비밀번호입니다.","ok"); mark(this,false); }
+    else { setMsg($("pwMsg"),"영문·숫자·특수문자를 모두 포함해 10자 이상 입력해 주세요.","err"); mark(this,true); }
+    if($("pw2").value) $("pw2").dispatchEvent(new Event("input"));
+  });
+  $("pw2").addEventListener("input", function(){
+    if(!this.value){ setMsg($("pw2Msg"),"",""); mark(this,false); return; }
+    if(this.value===$("pw").value){ setMsg($("pw2Msg"),"비밀번호가 일치합니다.","ok"); mark(this,false); }
+    else { setMsg($("pw2Msg"),"비밀번호가 일치하지 않습니다.","err"); mark(this,true); }
+  });
+
+  /* 파일 첨부 */
+  var drop=$("drop"), fileInput=$("fileInput"), pill=$("filePill"), MAX=10*1024*1024;
+  drop.addEventListener("click", function(){ fileInput.click(); });
+  ["dragover","dragenter"].forEach(function(e){ drop.addEventListener(e,function(ev){ev.preventDefault();drop.classList.add("drag");}); });
+  ["dragleave","drop"].forEach(function(e){ drop.addEventListener(e,function(ev){ev.preventDefault();drop.classList.remove("drag");}); });
+  drop.addEventListener("drop", function(ev){ if(ev.dataTransfer.files.length) handleFile(ev.dataTransfer.files[0]); });
+  fileInput.addEventListener("change", function(){ if(this.files.length) handleFile(this.files[0]); });
+  function handleFile(f){
+    if(f.size>MAX){ setMsg($("fileMsg"),"10MB 이하 파일만 첨부할 수 있습니다.","err"); return; }
+    if(!/\.(jpg|jpeg|png|pdf)$/i.test(f.name)){ setMsg($("fileMsg"),"JPG·PNG·PDF 파일만 첨부할 수 있습니다.","err"); return; }
+    setMsg($("fileMsg"),"","");
+    $("fileName").textContent=f.name+"  ("+(f.size/1024/1024).toFixed(1)+"MB)";
+    pill.style.display="flex"; drop.style.display="none";
+  }
+  $("fileRemove").addEventListener("click", function(){ fileInput.value=""; pill.style.display="none"; drop.style.display="block"; });
+
+  /* 약관 */
+  var ags=Array.prototype.slice.call(document.querySelectorAll(".ag"));
+  $("agreeAll").addEventListener("change", function(){ ags.forEach(function(c){ c.checked=$("agreeAll").checked; }); setMsg($("agreeMsg"),"",""); });
+  ags.forEach(function(c){ c.addEventListener("change", function(){ $("agreeAll").checked=ags.every(function(x){return x.checked;}); }); });
+  document.querySelectorAll(".view").forEach(function(b){ b.addEventListener("click", function(){ alert("["+this.dataset.doc+"] 전문은 별도 페이지로 연결됩니다."); }); });
+
+  /* 제출 */
+  $("joinForm").addEventListener("submit", function(e){
+    e.preventDefault();
+    var ok=true, first=null;
+    function fail(input,el,text){ ok=false; if(input)mark(input,true); if(el)setMsg(el,text,"err"); if(!first)first=input||drop; }
+
+    if(!/^[a-z0-9]{4,16}$/.test($("userId").value.trim())) fail($("userId"),$("idMsg"),"아이디를 확인해 주세요.");
+    else if(!idChecked) fail($("userId"),$("idMsg"),"아이디 중복확인을 해주세요.");
+    if(!pwValid($("pw").value)) fail($("pw"),$("pwMsg"),"비밀번호 조건을 확인해 주세요.");
+    if(!$("pw2").value || $("pw2").value!==$("pw").value) fail($("pw2"),$("pw2Msg"),"비밀번호가 일치하지 않습니다.");
+    if(!$("name").value.trim()) fail($("name"),$("nameMsg"),"이름을 입력해 주세요.");
+    if(!$("zipcode").value || !$("addr1").value) fail($("addr1"),$("addrMsg"),"우편번호 검색으로 주소를 입력해 주세요.");
+    else if(!$("addr2").value.trim()) fail($("addr2"),$("addrMsg"),"나머지(상세) 주소를 입력해 주세요.");
+    if(!/^01[0-9]{8,9}$/.test($("mobile").value.replace(/[^0-9]/g,""))) fail($("mobile"),$("mobileMsg"),"휴대폰 번호를 확인해 주세요.");
+    if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test($("email").value.trim())) fail($("email"),$("emailMsg"),"이메일 형식을 확인해 주세요.");
+    if(!$("license").value.trim()) fail($("license"),$("licenseMsg"),"약사 면허번호를 입력해 주세요.");
+    if(pill.style.display!=="flex"){ ok=false; setMsg($("fileMsg"),"사업자등록증을 첨부해 주세요.","err"); if(!first)first=drop; }
+
+    var mustOk=ags.filter(function(c){return c.dataset.must;}).every(function(c){return c.checked;});
+    if(!mustOk){ ok=false; setMsg($("agreeMsg"),"필수 약관에 모두 동의해 주세요.","err"); if(!first)first=$("agreeAll"); }
+
+    if(!ok){ if(first&&first.scrollIntoView) first.scrollIntoView({behavior:"smooth",block:"center"}); return; }
+
+    /* ───────────────────────────────────────────────
+       수집 데이터를 "본인 서버"로 전송 → 서버에서 카페24 Admin API
+       (POST /api/v2/admin/customers)로 회원 생성, 면허번호/사업자등록증은
+       별도 저장·검수 후 '약사회원' 등급 부여.
+       client_secret / access_token은 절대 이 페이지에 두지 마세요.
+       ─────────────────────────────────────────────── */
+    $("done").classList.add("show");
+  });
+  $("doneBtn").addEventListener("click", function(){ location.reload(); });
+})();
+</script>
+</body>
+</html>
